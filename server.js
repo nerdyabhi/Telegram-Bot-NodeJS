@@ -3,6 +3,7 @@ import userModel from "./models/user.js";
 import dotenv from 'dotenv';
 import dbConnect from './config/dbConnect.js'
 import gemini  from './utils/gemini.js'
+import xml2js from 'xml2js';
 dotenv.config();
 
  
@@ -67,15 +68,53 @@ bot.command('generate', async (ctx) => {
     }
 });
 
+bot.command('expense' , (ctx)=>{
+    ctx.reply("Where Did You spend the money?");
+    bot.on('message', async(ctx) => {
+        await ctx.reply('Choose an option:', {
+          reply_markup: {
+            keyboard: [
+              [{ text: 'Option 1' }, { text: 'Option 2' }],
+              [{ text: 'Option 3' }]
+            ],
+            resize_keyboard: true, // Automatically resize the buttons
+            one_time_keyboard: true // Keyboard disappears after one use
+          }
+        });
+      });
+      
+
+})
+
+
+
+
+
+
+
+bot.on('photo', async(ctx) => {
+    const photo = ctx.message.photo; // Array of photo sizes (different resolutions)
+    const caption = ctx.message.caption; // Text sent along with the photo
+  
+    // You can choose the highest resolution image using the last element
+    const highestResPhoto = photo[photo.length - 1];
+    const fileId = highestResPhoto.file_id;
+    const fileUrl = await ctx.telegram.getFileLink(fileId);
+
+    
+
+    const result = await gemini(caption , fileUrl);
+    await ctx.reply( result.response.text());
+    
+  });
+  
+
 
 
 
 bot.on('message', async(ctx)=>{
-    await ctx.replyWithMarkdown('This is a `Hemlo` text.');
-
-    // await ctx.sendSticker("CAACAgQAAxkBAAEM2hNm7z3KZHLPE3xNv5e9uM1FaSCXBQACCBQAAvmouVC-50EltWTgXjYE");
+    await ctx.replyWithPhoto('https://res.cloudinary.com/dvanwo7dv/image/upload/v1726854329/tbs3fzqyjsgpr8ym499i.jpg')
 })
-
 
 
 bot.launch();
