@@ -3,7 +3,8 @@ import userModel from "./models/user.js";
 import dotenv from 'dotenv';
 import dbConnect from './config/dbConnect.js'
 import gemini  from './utils/gemini.js'
-import xml2js from 'xml2js';
+import taskModel from './models/tasks.js'
+import { model } from 'mongoose';
 dotenv.config();
 
  
@@ -68,31 +69,39 @@ bot.command('generate', async (ctx) => {
     }
 });
 
-bot.command('expense' , (ctx)=>{
-    ctx.reply("Where Did You spend the money?");
-    bot.on('message', async(ctx) => {
-        await ctx.reply('Choose an option:', {
-          reply_markup: {
-            keyboard: [
-              [{ text: 'Option 1' }, { text: 'Option 2' }],
-              [{ text: 'Option 3' }]
-            ],
-            resize_keyboard: true, // Automatically resize the buttons
-            one_time_keyboard: true // Keyboard disappears after one use
-          }
-        });
-      });
-      
 
+bot.command('task' , async(ctx)=>{
+    try{
+
+      const task = ctx.payload;
+      const data =await taskModel.create({task:task , createdBy:ctx.from.id});
+      await ctx.reply("Successfully added to database " , task);
+    }
+    catch(error){
+      await ctx.reply("Sorry but shit went real !");
+      console.log(error.message);
+      
+    }
+})
+
+
+bot.command('getAlltasks' , async(ctx)=>{
+    try{
+      const Alltasks = await taskModel.find({createdBy:ctx.from.id});
+      const data = Alltasks.map((item , index) => `${item.createdAt.toLocaleString()}\n ${index}. ${item.task}`).join('\n\n');
+
+      const geminiResponse = await gemini(data + "arrange the above message fix spacing and make them clear and concise");
+      await ctx.reply(geminiResponse.response.text())
+      await ctx.reply(data)
+    } catch(error){
+      await ctx.replyWithMarkdownV2("Error occured  , " , error.message);
+    }
 })
 
 
 
 
-
-
-
-bot.on('photo', async(ctx) => {
+bot.on('photo', async(ctx) =>  {
     const photo = ctx.message.photo; // Array of photo sizes (different resolutions)
     const caption = ctx.message.caption; // Text sent along with the photo
   

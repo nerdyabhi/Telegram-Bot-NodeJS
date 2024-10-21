@@ -7,11 +7,9 @@ import axios from "axios";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API);
 
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-const gemini = async (newPrompt  ,conversationHistory, imageUrl =null) => {
+const gemini = async (prompt , imageUrl =null) => {
   try {
-    let prompt = newPrompt;
-    if(conversationHistory)
-     prompt = `Based on the following conversation history:\n${conversationHistory.join('\n')}\n\nPlease process the following message:\n${newPrompt}\n\nGenerate a comprehensive and informative response.`;
+    
     // Create the request payload
 
     if(!imageUrl){
