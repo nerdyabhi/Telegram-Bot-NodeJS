@@ -28,4 +28,4 @@ const userSchema = mongoose.Schema({
     completionTokens:{type:Number},
 } , {timestamps:true})
 
-export default mongoose.model('User' , userSchema);
+export default mongoose.model('tgUser' , userSchema);

@@ -1,10 +1,10 @@
-import { Telegraf } from 'telegraf';
+import { Telegraf , Markup } from 'telegraf';
 import userModel from "./models/user.js";
 import dotenv from 'dotenv';
 import dbConnect from './config/dbConnect.js'
 import gemini  from './utils/gemini.js'
 import taskModel from './models/tasks.js'
-import { model } from 'mongoose';
+import { INFO_TEXT } from './utils/constants.js';
 dotenv.config();
 
  
@@ -14,8 +14,9 @@ dbConnect(process.env.MONGO_URL);
 const bot = new Telegraf(process.env.TELEGRAM_BOT_API);
 
 
+
+
 bot.start(async (ctx)=>{
-   await ctx.reply("Hello world User");
   
    const from = ctx.update.message.from;
    try {
@@ -29,14 +30,49 @@ bot.start(async (ctx)=>{
 
     } , {upsert:true , new:true})
 
-    await ctx.reply(`Hey ! , ${from.first_name} Kemon Achis`)
+  } catch (error) {
+    await ctx.reply("Sorry Some error occurred" , error.message);
+  }
+  
+   await ctx.reply(
+    `Welcome! ${ctx.from.first_name} Choose an option:`,
+    Markup.inlineKeyboard([
+        Markup.button.callback('Check Commands', 'do_commands'),
+        Markup.button.callback('Text Abhi', 'text_abhi')
+    ]).oneTime().resize()
+);
 
-   } catch (error) {
-        await ctx.reply("Sorry Some error occurred" , error);
-   }
+await ctx.reply(
+  'Welcome! Use the menu below:',
+  Markup.keyboard([['🧑‍💻 Github Repo', 'ℹ Info']])
+    .resize() // Adjusts the size for better mobile display
+);
    
-    
 })
+
+bot.hears('🧑‍💻 Github Repo', (ctx) => ctx.reply('Check The Repo at : https://github.com/nerdyabhi/Telegram-Bot-NodeJS'));
+bot.hears('ℹ Info', (ctx) => ctx.replyWithMarkdown(INFO_TEXT));
+
+
+bot.action('do_commands', async(ctx) => {
+  await ctx.reply( INFO_TEXT,
+    {
+        parse_mode: 'Markdown', // Enables Markdown formatting
+        ...Markup.inlineKeyboard([
+            [Markup.button.callback('Generate Prompt', 'generate')],
+            [Markup.button.callback('Save Task', 'save_task')],
+            [Markup.button.callback('Get All Tasks', 'get_all_tasks')]
+        ])
+    }
+);
+});
+
+
+
+bot.action('text_abhi', async(ctx) => {
+  await ctx.reply('@realCopyNinja talk to him.');
+});
+
 
 bot.on('sticker', (ctx) => {
     console.log(ctx.message.sticker); // Log sticker details
@@ -89,16 +125,11 @@ bot.command('getAlltasks' , async(ctx)=>{
     try{
       const Alltasks = await taskModel.find({createdBy:ctx.from.id});
       const data = Alltasks.map((item , index) => `${item.createdAt.toLocaleString()}\n ${index}. ${item.task}`).join('\n\n');
-
-      const geminiResponse = await gemini(data + "arrange the above message fix spacing and make them clear and concise");
-      await ctx.reply(geminiResponse.response.text())
       await ctx.reply(data)
     } catch(error){
       await ctx.replyWithMarkdownV2("Error occured  , " , error.message);
     }
 })
-
-
 
 
 bot.on('photo', async(ctx) =>  {
@@ -119,11 +150,11 @@ bot.on('photo', async(ctx) =>  {
   
 
 
-
-
 bot.on('message', async(ctx)=>{
-    await ctx.replyWithPhoto('https://res.cloudinary.com/dvanwo7dv/image/upload/v1726854329/tbs3fzqyjsgpr8ym499i.jpg')
-})
+    await ctx.reply('Idk How to respond to that , so here is a cute sticker');
+    await ctx.replyWithSticker("CAACAgQAAxkBAAIC3mcWSMT7EM8P1iuLoRf90gGatMJHAAJ3CwACVI8JUAhi7Vj3hd0nNgQ");
+  })
+
 
 
 bot.launch();

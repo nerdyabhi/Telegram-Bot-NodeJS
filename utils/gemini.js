@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import fs from "fs";
 import axios from "axios";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API);
