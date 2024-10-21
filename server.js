@@ -6,6 +6,7 @@ import gemini  from './utils/gemini.js'
 import taskModel from './models/tasks.js'
 import { INFO_TEXT } from './utils/constants.js';
 dotenv.config();
+import express from 'express'
 
  
 dbConnect(process.env.MONGO_URL);
@@ -80,29 +81,33 @@ bot.on('sticker', (ctx) => {
 });
 
 bot.command('generate', async (ctx) => { 
-    try {
-        const request = ctx.payload + "\n Give answer in telegraf `reply with markdown` format.";
-        const result = await gemini(request);
-        
-        if (!result || !result.response) {
-            await ctx.reply("Failed to get info..");
-            return;
-        }
+  try {
+      const request = ctx.message.text.split(" ").slice(1).join(" "); // Extracting arguments
+      const result = await gemini(request);
+      
+      if (!result || !result.response) {
+          await ctx.reply("Failed to get info.");
+          return;
+      }
 
-        await ctx.replyWithMarkdown(result.response.text());
-        
-    } catch (error) {
+      // Logging the result for debugging
+      console.log(result.response.text());
 
-        console.error("Error in /generate command:", error);
-        await ctx.reply("Error in formatting Trying again....");
-         try {
-            const request =ctx.payload;
-            const result = await gemini(request);
-            await ctx.reply(result.response.text());
-         } catch (error) {
-            await ctx.reply("Facing issues getting response please try again...")
-         }
-    }
+      // Use replyWithMarkdown or replyWithMarkdownV2 as per your choice
+      await ctx.replyWithMarkdownV2(result.response.text());
+      
+  } catch (error) {
+      console.error("Error in /generate command:", error);
+      await ctx.reply("Error in formatting, trying again....");
+      // Attempting to handle the error gracefully
+      try {
+          const request = ctx.message.text.split(" ").slice(1).join(" "); // Extracting again if necessary
+          const result = await gemini(request);
+          await ctx.reply(result.response.text());
+      } catch (error) {
+          await ctx.reply("Facing issues getting response, please try again...");
+      }
+  }
 });
 
 
