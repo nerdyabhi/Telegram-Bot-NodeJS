@@ -56,16 +56,22 @@ bot.hears('ℹ Info', (ctx) => ctx.replyWithMarkdown(INFO_TEXT));
 
 
 bot.action('do_commands', async(ctx) => {
-  await ctx.reply( INFO_TEXT,
-    {
-        parse_mode: 'Markdown', // Enables Markdown formatting
-        ...Markup.inlineKeyboard([
-            [Markup.button.callback('Generate Prompt', 'generate')],
-            [Markup.button.callback('Save Task', 'save_task')],
-            [Markup.button.callback('Get All Tasks', 'get_all_tasks')]
-        ])
+    try {
+      await ctx.reply( INFO_TEXT,
+        {
+            parse_mode: 'Markdown', // Enables Markdown formatting
+            ...Markup.inlineKeyboard([
+                [Markup.button.callback('Generate Prompt', 'generate')],
+                [Markup.button.callback('Save Task', 'save_task')],
+                [Markup.button.callback('Get All Tasks', 'get_all_tasks')]
+            ])
+        }
+    );
+    } catch (error) {
+        console.log(error.message);
+        await ctx.reply("Uff Ho ! , this bot throws another error" , error.message);
+        
     }
-);
 });
 
 
@@ -138,18 +144,24 @@ bot.command('getAlltasks' , async(ctx)=>{
 
 
 bot.on('photo', async(ctx) =>  {
-    const photo = ctx.message.photo; // Array of photo sizes (different resolutions)
-    const caption = ctx.message.caption; // Text sent along with the photo
-  
-    // You can choose the highest resolution image using the last element
-    const highestResPhoto = photo[photo.length - 1];
-    const fileId = highestResPhoto.file_id;
-    const fileUrl = await ctx.telegram.getFileLink(fileId);
-
+    try {
+      const photo = ctx.message.photo; // Array of photo sizes (different resolutions)
+      const caption = ctx.message.caption; // Text sent along with the photo
     
-
-    const result = await gemini(caption , fileUrl);
-    await ctx.reply( result.response.text());
+      // You can choose the highest resolution image using the last element
+      const highestResPhoto = photo[photo.length - 1];
+      const fileId = highestResPhoto.file_id;
+      const fileUrl = await ctx.telegram.getFileLink(fileId);
+  
+      
+  
+      const result = await gemini(caption , fileUrl);
+      await ctx.reply( result.response.text());
+    } catch (error) {
+        console.log(error.message);
+        await ctx.reply("error processing " , error.message);
+        
+    }
     
   });
   
