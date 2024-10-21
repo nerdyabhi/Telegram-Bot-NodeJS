@@ -7,8 +7,12 @@ import taskModel from './models/tasks.js'
 import { INFO_TEXT } from './utils/constants.js';
 dotenv.config();
 import express from 'express'
+const app  = express();
 
- 
+app.get("/" , (req, res)=>{
+    res.send('<h1> <a href="https://t.me/nerdyabhi_bot">Telegram Bot Link</a> </h1>');
+}) 
+
 dbConnect(process.env.MONGO_URL);
 
 
@@ -179,3 +183,9 @@ bot.launch();
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
+
+
+app.listen(process.env.port || 3000 , ()=>{
+    console.log("Express server running fine af");
+    
+});
