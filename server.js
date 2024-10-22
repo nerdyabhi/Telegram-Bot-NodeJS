@@ -1,191 +1,53 @@
-import { Telegraf , Markup } from 'telegraf';
-import userModel from "./models/user.js";
+import { Telegraf, Markup } from 'telegraf';
+import userModel from './models/user.js';
 import dotenv from 'dotenv';
-import dbConnect from './config/dbConnect.js'
-import gemini  from './utils/gemini.js'
-import taskModel from './models/tasks.js'
+import dbConnect from './config/dbConnect.js';
+import gemini from './utils/gemini.js';
+import taskModel from './models/tasks.js';
 import { INFO_TEXT } from './utils/constants.js';
+import express from 'express';
+
 dotenv.config();
-import express from 'express'
-const app  = express();
 
-app.get("/" , (req, res)=>{
-    res.send('<h1> <a href="https://t.me/nerdyabhi_bot">Telegram Bot Link</a> </h1>');
-}) 
-
-dbConnect(process.env.MONGO_URL);
-
-
+const app = express();
 const bot = new Telegraf(process.env.TELEGRAM_BOT_API);
 
+const PORT = process.env.PORT || 3000;
+
+// Connect to MongoDB
+dbConnect(process.env.MONGO_URL);
+
+// // Middleware to parse JSON requests
+// app.use(express.json());
+
+// // Webhook setup
+// const PORT = process.env.PORT || 843;
+// const WEBHOOK_PATH = `/webhook/${bot.secretPathComponent()}`;
+// const WEBHOOK_URL = `${process.env.PUBLIC_URL}${WEBHOOK_PATH}`;  // Ensure PUBLIC_URL is set to your domain
+
+// // Register Webhook
+// bot.telegram.setWebhook(WEBHOOK_URL);
+
+// // Express route to receive webhook updates
+// app.post(WEBHOOK_PATH, (req, res) => {
+//     bot.handleUpdate(req.body);
+//     res.status(200).send('OK');
+// });
+
+// // Express route to provide bot link on home page
+// app.get('/', (req, res) => {
+//     res.send('<h1><a href="https://t.me/nerdyabhi_bot">Telegram Bot Link</a></h1>');
+// });
+
+// Bot Commands and Handlers
 
 
 
-bot.start(async (ctx)=>{
-  
-   const from = ctx.update.message.from;
-   try {
-        await userModel.findOneAndUpdate({tgId:from.id}, {
-        $setOnInsert:{
-            firstName:from.first_name,
-            lastName:from.last_name,
-            isBot:from.is_bot,
-            username:from.username,
-        }
+// // Graceful shutdown
+// process.once('SIGINT', () => bot.stop('SIGINT'));
+// process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
-    } , {upsert:true , new:true})
-
-  } catch (error) {
-    await ctx.reply("Sorry Some error occurred" , error.message);
-  }
-  
-   await ctx.reply(
-    `Welcome! ${ctx.from.first_name} Choose an option:`,
-    Markup.inlineKeyboard([
-        Markup.button.callback('Check Commands', 'do_commands'),
-        Markup.button.callback('Text Abhi', 'text_abhi')
-    ]).oneTime().resize()
-);
-
-await ctx.reply(
-  'Welcome! Use the menu below:',
-  Markup.keyboard([['🧑‍💻 Github Repo', 'ℹ Info']])
-    .resize() // Adjusts the size for better mobile display
-);
-   
-})
-
-bot.hears('🧑‍💻 Github Repo', (ctx) => ctx.reply('Check The Repo at : https://github.com/nerdyabhi/Telegram-Bot-NodeJS'));
-bot.hears('ℹ Info', (ctx) => ctx.replyWithMarkdown(INFO_TEXT));
-
-
-bot.action('do_commands', async(ctx) => {
-    try {
-      await ctx.reply( INFO_TEXT,
-        {
-            parse_mode: 'Markdown', // Enables Markdown formatting
-            ...Markup.inlineKeyboard([
-                [Markup.button.callback('Generate Prompt', 'generate')],
-                [Markup.button.callback('Save Task', 'save_task')],
-                [Markup.button.callback('Get All Tasks', 'get_all_tasks')]
-            ])
-        }
-    );
-    } catch (error) {
-        console.log(error.message);
-        await ctx.reply("Uff Ho ! , this bot throws another error" , error.message);
-        
-    }
-});
-
-
-
-bot.action('text_abhi', async(ctx) => {
-  await ctx.reply('@realCopyNinja talk to him.');
-});
-
-
-bot.on('sticker', (ctx) => {
-    console.log(ctx.message.sticker); // Log sticker details
-    ctx.reply(`Sticker file_id: ${ctx.message.sticker.file_id}`);
-});
-
-bot.command('generate', async (ctx) => { 
-  try {
-      const request = ctx.message.text.split(" ").slice(1).join(" "); // Extracting arguments
-      const result = await gemini(request);
-      
-      if (!result || !result.response) {
-          await ctx.reply("Failed to get info.");
-          return;
-      }
-
-      // Logging the result for debugging
-      console.log(result.response.text());
-
-      // Use replyWithMarkdown or replyWithMarkdownV2 as per your choice
-      await ctx.replyWithMarkdownV2(result.response.text());
-      
-  } catch (error) {
-      console.error("Error in /generate command:", error);
-      await ctx.reply("Error in formatting, trying again....");
-      // Attempting to handle the error gracefully
-      try {
-          const request = ctx.message.text.split(" ").slice(1).join(" "); // Extracting again if necessary
-          const result = await gemini(request);
-          await ctx.reply(result.response.text());
-      } catch (error) {
-          await ctx.reply("Facing issues getting response, please try again...");
-      }
-  }
-});
-
-
-bot.command('task' , async(ctx)=>{
-    try{
-
-      const task = ctx.payload;
-      const data =await taskModel.create({task:task , createdBy:ctx.from.id});
-      await ctx.reply("Successfully added to database " , task);
-    }
-    catch(error){
-      await ctx.reply("Sorry but shit went real !");
-      console.log(error.message);
-      
-    }
-})
-
-
-bot.command('getAlltasks' , async(ctx)=>{
-    try{
-      const Alltasks = await taskModel.find({createdBy:ctx.from.id});
-      const data = Alltasks.map((item , index) => `${item.createdAt.toLocaleString()}\n ${index}. ${item.task}`).join('\n\n');
-      await ctx.reply(data)
-    } catch(error){
-      await ctx.replyWithMarkdownV2("Error occured  , " , error.message);
-    }
-})
-
-
-bot.on('photo', async(ctx) =>  {
-    try {
-      const photo = ctx.message.photo; // Array of photo sizes (different resolutions)
-      const caption = ctx.message.caption; // Text sent along with the photo
-    
-      // You can choose the highest resolution image using the last element
-      const highestResPhoto = photo[photo.length - 1];
-      const fileId = highestResPhoto.file_id;
-      const fileUrl = await ctx.telegram.getFileLink(fileId);
-  
-      
-  
-      const result = await gemini(caption , fileUrl);
-      await ctx.reply( result.response.text());
-    } catch (error) {
-        console.log(error.message);
-        await ctx.reply("error processing " , error.message);
-        
-    }
-    
-  });
-  
-
-
-bot.on('message', async(ctx)=>{
-    await ctx.reply('Idk How to respond to that , so here is a cute sticker');
-    await ctx.replyWithSticker("CAACAgQAAxkBAAIC3mcWSMT7EM8P1iuLoRf90gGatMJHAAJ3CwACVI8JUAhi7Vj3hd0nNgQ");
-  })
-
-
-
-bot.launch();
-
-// Enable graceful stop
-process.once('SIGINT', () => bot.stop('SIGINT'))
-process.once('SIGTERM', () => bot.stop('SIGTERM'))
-
-
-app.listen(process.env.port || 3000 , ()=>{
-    console.log("Express server running fine af");
-    
+// Start Express server
+app.listen(PORT, () => {
+    console.log(`Express server running on port ${PORT}`);
 });
