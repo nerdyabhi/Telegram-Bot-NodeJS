@@ -75,6 +75,13 @@ bot.action('text_abhi', async (ctx) => {
 bot.command('generate', async (ctx) => {
     try {
         const request = ctx.message.text.split(' ').slice(1).join(' ');
+        if (!request) {
+            await ctx.reply(
+                'Please provide a prompt to generate a response. Usage:\n`/generate <your prompt>`',
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
         const result = await gemini(request);
 
         if (!result || !result.response) {
@@ -83,6 +90,9 @@ bot.command('generate', async (ctx) => {
         }
 
         console.log(result.response.text());
+
+        const escapedText = responseText.replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+
         await ctx.replyWithMarkdownV2(result.response.text());
     } catch (error) {
         console.error('Error in /generate command:', error);
